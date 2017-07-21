@@ -111,7 +111,28 @@ class SistemasController extends AppController
     }
     
     public function redirectSystem() {
-        $http = new Client();
-        return $this->redirect('http://172.20.1.2:82/tmt/SISTRAMDOC/index.php');
+        $credencial_descripcion = array_keys($this->request->getQuery())[0];
+        $credencial_query = $this->Sistemas->Credenciales->findByDescripcion($credencial_descripcion);
+        $credencial = $credencial_query->first();
+        $detalle_acceso_descripcion = $this->request->getQuery($credencial_descripcion);
+        $sistema_redirect = 2;
+        
+        $detalle_acceso = $this->Sistemas->Credenciales->DetalleAccesos->find()
+            ->where([
+                'descripcion' => $detalle_acceso_descripcion,
+                'credencial_id' => $credencial->id
+            ])
+            ->contain(['Accesos'])
+            ->first();
+        
+        $persona = $this->Sistemas->Accesos->Personas->find()
+            ->where(['Personas.id' => $detalle_acceso->acceso->persona_id])
+            ->contain(['Accesos' => function($q) use ($sistema_redirect) {
+                return $q->where(['sistema_id' => $sistema_redirect]);
+            }])
+            ->first();
+        
+        debug($persona);
+        // return $this->redirect('http://172.20.1.2:82/tmt/SISTRAMDOC/index.php');
     }
 }

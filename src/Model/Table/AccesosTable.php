@@ -45,6 +45,9 @@ class AccesosTable extends Table
             'foreignKey' => 'sistema_id',
             'joinType' => 'INNER'
         ]);
+        $this->hasMany('DetalleAccesos', [
+            'foreignKey' => 'credencial_id'
+        ]);
     }
 
     /**

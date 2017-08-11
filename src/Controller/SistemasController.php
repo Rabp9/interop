@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Controller\AppController;
 use Cake\Http\Client;
+use Cake\Utility\Hash;
 
 /**
  * Sistemas Controller
@@ -111,6 +112,55 @@ class SistemasController extends AppController
     }
     
     public function redirectSystem() {
+        $sistema_id = $this->request->query('sistema_id');
+        $acceso_u = $this->request->query('acceso_u');
+        $acceso_p = $this->request->query('acceso_p');
+        $sistema_destino_id = $this->request->query('sistema_destino_id');
+        
+        $sistema_destino = $this->Sistemas->get($sistema_destino_id);
+        
+        $credenciales = $this->Sistemas->Credenciales->find()
+            ->where([
+                'sistema_id' => $sistema_id
+            ])
+            ->toArray();
+        
+        if ($credenciales) {
+            $credenciales = Hash::extract($credenciales, '{n}.id');
+            
+            $detalle_acceso_user = $this->Sistemas->Credenciales->DetalleAccesos->find()
+                ->where([
+                    'credencial_id IN' => $credenciales,
+                    'descripcion' => $acceso_u
+                ])
+                ->first();
+            $detalle_acceso_pass = $this->Sistemas->Credenciales->DetalleAccesos->find()
+                ->where([
+                    'credencial_id IN' => $credenciales,
+                    'descripcion' => $acceso_p
+                ])
+                ->first();
+          
+            if ($detalle_acceso_user && $detalle_acceso_pass) {
+                $acceso = $this->Sistemas->Accesos->find()
+                    ->where(['id' => $detalle_acceso_user->acceso_id])
+                    ->first();
+                $acceso_destino = $this->Sistemas->Accesos->find()
+                    ->where([
+                        'persona_id' => $acceso->persona_id,
+                        'sistema_id' => $sistema_destino_id
+                    ])
+                    ->first();
+                $detalle_accesos = $this->Sistemas->Accesos->DetalleAccesos->find()
+                    ->where(['acceso_id' => $acceso_destino->id])
+                    ->contain(['Credenciales'])
+                    ->toArray();
+            }
+        }
+        
+        $this->set(compact('sistema_destino', 'detalle_accesos'));
+        $this->set('_serialize', ['sistema_destino', 'detalle_accesos']);
+        /*
         $credencial_descripcion = array_keys($this->request->getQuery())[0];
         $credencial_query = $this->Sistemas->Credenciales->findByDescripcion($credencial_descripcion);
         $credencial = $credencial_query->first();
@@ -134,5 +184,6 @@ class SistemasController extends AppController
         
         debug($persona);
         // return $this->redirect('http://172.20.1.2:82/tmt/SISTRAMDOC/index.php');
+        */
     }
 }
